@@ -1,0 +1,94 @@
+import snakebids
+from snakebids import bids
+
+configfile: 'config/config_preproc.yml'
+
+sites = config['sites']
+subjects = dict()
+
+#read in txt file for each site
+for site in sites:
+    in_txt = config['subject_list'].format(site=site)
+    with open(in_txt,'r') as f:
+        subjects[site] = [s.replace('\n','') for s in f.readlines()]
+
+
+app_config = config['apps']
+apps = app_config.keys()
+app_tmp = config['global_app_opts']['tmp']
+
+root = 'preproc'
+
+
+def get_resources(wildcards, resources, threads): 
+
+    app_type = resources.app_type
+    
+    if app_type == 'snakemake':
+        return f"--resources mem_mb={resources.mem_mb} --cores {threads}"
+    elif app_type == 'nipype':
+        return f"--mem {resources.mem_mb} --nprocs {threads} --omp-nthreads {threads}"
+    else:
+        return ""
+
+def get_cmd_rsync_from_tmp(app):
+    rsync_cmds = list()
+    rsync_maps = app_config[app]['rsync_maps']
+
+    for map_from in rsync_maps.keys():
+        map_to = rsync_maps[map_from]
+        
+        map_from_folder = os.path.join(f'{app_tmp}',f'{app}','sub-{subject}',f'{map_from}')
+        map_to_folder = os.path.join(f'{root}',f'{app}',f'{map_to}')
+
+        rsync_cmds.append(f"mkdir -p {map_to_folder}")
+        rsync_cmds.append(f"rsync -av {map_from_folder} {map_to_folder}")
+    return ' && '.join(rsync_cmds)
+
+
+def get_outputs(app):
+    
+    outputs = list()
+    if 'dirs' in app_config[app]['outputs'].keys():
+        for dir in app_config[app]['outputs']['dirs']:
+            outputs.append(directory(f'{root}/site-{{site}}/{app}/{dir}'))
+
+    if 'files' in app_config[app]['outputs'].keys():
+        for file in app_config[app]['outputs']['files']:
+            outputs.append(f'{root}/site-{{site}}/{app}/{file}')
+
+    return outputs
+ 
+
+rule all_preproc:
+    input:
+        expand('preproc/site-{site}/{app}/dataset_description.json',site=config['sites'],app=apps)
+
+rule create_deriv_dataset_json:
+    input: 
+        dir = lambda wildcards: expand('preproc/site-{site}/{app}/sub-{subject}',site=wildcards.site, subject=subjects[wildcards.site],allow_missing=True),
+        json = 'resources/dataset_description_derivatives_template.json'
+    output:
+        json = 'preproc/site-{site}/{app}/dataset_description.json'
+    shell: 'cp {input.json} {output.json}'
+
+for app in apps:
+
+    rule:
+        input: 
+            bids_dir = lambda wildcards: config['bids_dir'][wildcards.site]
+        name: app
+        params:
+            out_tmp = os.path.join(f'{app_tmp}',app,f'sub-{{subject}}'),
+            command = app_config[app]['command'],
+            app_opts = app_config[app]['opts'],
+            resources_opts = get_resources,
+            rsync_cmds = get_cmd_rsync_from_tmp(app)
+        output: get_outputs(app)
+        threads: app_config[app]['threads']
+        resources: **app_config[app]['resources']
+        shell: 
+            "{params.command} {input.bids_dir} {params.out_tmp} participant --participant_label {wildcards.subject} {params.app_opts} {params.resources_opts}  && "
+            " {params.rsync_cmds} "
+
+

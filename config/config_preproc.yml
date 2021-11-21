@@ -1,0 +1,62 @@
+sites:
+  - LHS
+  - TWH
+  - HSC
+
+subject_list: ../eplink-spred2bids/resources/subjects_{site}.txt
+
+bids_dir:
+  HSC: '../eplink-spred2bids/bids/site-HSC'
+  LHS: '../lhs/bids'
+  TWH: '../twh/EPL31_MRI_BIDS/BIDS_formatted'
+
+global_app_opts:
+  #tmp: '/tmp'
+  tmp: '$SLURM_TMPDIR'
+
+
+
+
+apps:
+
+  hippunfold:
+    command:
+      - 'singularity run -e /project/6050199/akhanf/singularity/bids-apps/khanlab_hippunfold_latest.sif'      
+    opts: 
+      - '--keep_work'
+    rsync_maps: 
+      'results/sub-{subject}/': 'sub-{subject}' #watch out for trailing slash on the origin folder, it is required here.. 
+      'work/sub-{subject}/': 'work/sub-{subject}'
+    outputs:
+      dirs:
+        - 'sub-{subject}' 
+    resources:
+      mem_mb: 32000
+      time: 180
+      app_type: snakemake
+    threads: 8
+
+
+
+  fmriprep_20.2.6:
+    command:
+      - 'singularity run -e /project/6050199/akhanf/singularity/bids-apps/nipreps_fmriprep_20.2.6.sif'
+    opts: 
+      - '--fs-no-reconall'
+      - '--notrack'
+      - '--output-layout bids'
+      - '--use-aroma'
+      - '--output-spaces T1w MNI152NLin6Asym MNI152NLin2009cAsym'
+    rsync_maps:
+      'sub-{subject}': 'sub-{subject}'
+    outputs:
+      files:
+        - 'sub-{subject}.html'
+      dirs:
+        - 'sub-{subject}' 
+    resources:
+      mem_mb: 32000
+      time: 180
+      app_type: nipype
+    threads: 8
+    
