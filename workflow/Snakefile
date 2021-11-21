@@ -27,7 +27,7 @@ def get_resources(wildcards, resources, threads):
     if app_type == 'snakemake':
         return f"--resources mem_mb={resources.mem_mb} --cores {threads}"
     elif app_type == 'nipype':
-        return f"--mem {resources.mem_mb} --nprocs {threads} --omp-nthreads {threads}"
+        return f"--work-dir {config['global_app_opts']['tmp']} --mem {resources.mem_mb} --nprocs {threads} --omp-nthreads {threads}"
     else:
         return ""
 
