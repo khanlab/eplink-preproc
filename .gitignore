@@ -1,0 +1,4 @@
+.snakemake/
+logs/
+preproc/
+resources/snakebids.json
