@@ -7,9 +7,9 @@ sites:
 subject_list: 'config/subjects_{site}.txt' #this is a curated list that only has subjects with resting-state and T1w
 
 bids_dir:
-  HSC: '/project/6050199/akhanf/ext-bids/eplink_phase3/eplink-spred2bids/bids/site-HSC'
-  LHS: '/project/6050199/akhanf/cfmm-bids/data/Burneo/EpLinkPhase3_Baseline/bids'
-  TWH: '/project/6050199/akhanf/ext-bids/eplink_phase3/twh/EPL31_MRI_BIDS/bids_clean/bids'
+  HSC: '../eplink-spred2bids/bids/site-HSC'
+  LHS: '../eplink-spred2bids/bids/site-LHS'
+  TWH: '../eplink-spred2bids/bids/site-TWH'
 
 global_app_opts:
   #tmp: '/tmp'
