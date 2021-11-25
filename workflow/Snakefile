@@ -25,5 +25,6 @@ rule all_preproc:
 
 
 include: 'rules/preproc.smk'
+include: 'rules/singularity.smk'
 
 
